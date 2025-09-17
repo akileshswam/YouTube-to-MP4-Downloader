@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube to MP4 Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+
+        .input-group {
+            margin-bottom: 30px;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 18px 24px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .url-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .url-input::placeholder {
+            color: #aaa;
+        }
+
+        .quality-selector {
+            margin: 20px 0;
+        }
+
+        .quality-selector select {
+            padding: 12px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .download-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .download-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            .logo {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🎥 YT Converter</div>
+        <div class="subtitle">Convert YouTube videos to MP4 format</div>
+        
+        <form id="converterForm">
+            <div class="input-group">
+                <input 
+                    type="url" 
+                    id="videoUrl" 
+                    class="url-input" 
+                    placeholder="Paste YouTube video URL here..."
+                    required
+                >
+            </div>
+            
+            <div class="quality-selector">
+                <label for="quality">Quality:</label>
+                <select id="quality">
+                    <option value="best">Best Quality</option>
+                    <option value="worst">Lowest Quality</option>
+                    <option value="720p">720p HD</option>
+                    <option value="480p">480p</option>
+                    <option value="360p">360p</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="download-btn" id="downloadBtn">
+                Download MP4
+            </button>
+        </form>
+        
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <div class="footer">
+            <p>⚠️ Only download videos you have permission to use</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('converterForm');
+        const urlInput = document.getElementById('videoUrl');
+        const qualitySelect = document.getElementById('quality');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const status = document.getElementById('status');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+
+        // YouTube URL validation
+        function isValidYouTubeUrl(url) {
+            const regex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|v\/)|youtu\.be\/)[\w\-_]{11}(&\S*)?$/;
+            return regex.test(url);
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            status.textContent = type === 'loading' ? '' : message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            if (type === 'loading') {
+                status.innerHTML = `<span class="spinner"></span>${message}`;
+            }
+        }
+
+        // Hide status message
+        function hideStatus() {
+            status.style.display = 'none';
+            progressBar.style.display = 'none';
+        }
+
+        // Simulate progress (you'd get real progress from your backend)
+        function simulateProgress() {
+            progressBar.style.display = 'block';
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress >= 90) {
+                    progress = 90; // Stop at 90% until real completion
+                    clearInterval(interval);
+                }
+                progressFill.style.width = progress + '%';
+            }, 500);
+            return interval;
+        }
+
+        // Handle form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const url = urlInput.value.trim();
+            const quality = qualitySelect.value;
+            
+            // Validate URL
+            if (!isValidYouTubeUrl(url)) {
+                showStatus('Please enter a valid YouTube URL', 'error');
+                return;
+            }
+            
+            // Disable button and show loading
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = 'Processing...';
+            showStatus('Preparing download...', 'loading');
+            
+            const progressInterval = simulateProgress();
+            
+            try {
+                // Update this URL to your backend server
+                const response = await fetch('http://localhost:3000/api/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        quality: quality
+                    })
+                });
+                
+                if (response.ok) {
+                    // Clear progress simulation
+                    clearInterval(progressInterval);
+                    progressFill.style.width = '100%';
+                    
+                    // Handle file download
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = 'video.mp4'; // You might want to get the actual filename from response headers
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(downloadUrl);
+                    document.body.removeChild(a);
+                    
+                    showStatus('Download completed successfully! 🎉', 'success');
+                    
+                    // Reset form
+                    setTimeout(() => {
+                        urlInput.value = '';
+                        hideStatus();
+                    }, 3000);
+                    
+                } else {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+            } catch (error) {
+                clearInterval(progressInterval);
+                console.error('Download error:', error);
+                showStatus('Download failed. Please try again or check the URL.', 'error');
+            } finally {
+                // Re-enable button
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Download MP4';
+            }
+        });
+
+        // Real-time URL validation
+        urlInput.addEventListener('input', (e) => {
+            const url = e.target.value.trim();
+            if (url && !isValidYouTubeUrl(url)) {
+                urlInput.style.borderColor = '#e74c3c';
+            } else {
+                urlInput.style.borderColor = '#e1e5e9';
+            }
+        });
+
+        // Clear status on new input
+        urlInput.addEventListener('focus', () => {
+            hideStatus();
+        });
+    </script>
+</body>
+</html>
